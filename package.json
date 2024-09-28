@@ -2,6 +2,15 @@
   "name": "u-locker-api",
   "module": "src/index.ts",
   "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:seed": "bun src/utils/seed.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/cookie-parser": "^1.4.7",
