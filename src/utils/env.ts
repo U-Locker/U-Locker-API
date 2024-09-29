@@ -3,8 +3,7 @@ const envs = [
   "APP_PORT",
   "APP_FQDN",
   "APP_JWT_SECRET",
-  "APP_DB_URL",
-  "APP_API_URL",
+  "APP_DATABASE_URL",
 ];
 
 envs.forEach((env) => {
@@ -19,7 +18,8 @@ const ENV = {
   APP_PORT: Number(Bun.env.APP_PORT) || 8080,
   APP_FQDN: Bun.env.APP_FQDN || "http://localhost:8080",
   APP_JWT_SECRET: Bun.env.APP_JWT_SECRET || "chipichipichapachapa",
-  APP_DB_URL: Bun.env.APP_DB_URL || "mysql://root@localhost:3306/mxm24_db",
+  APP_DATABASE_URL:
+    Bun.env.APP_DB_URL || "mysql://root@localhost:3306/mxm24_db",
 };
 
 export default ENV;
