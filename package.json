@@ -5,6 +5,7 @@
   "scripts": {
     "start": "bun src/index.ts",
     "dev": "bun --watch src/index.ts",
+    "lint": "eslint src",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
@@ -12,19 +13,25 @@
     "db:seed": "bun src/utils/seed.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^9.11.1",
     "@types/bun": "latest",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
     "@types/express-fileupload": "^1.5.1",
-    "@types/jsonwebtoken": "^9.0.7"
+    "@types/jsonwebtoken": "^9.0.7",
+    "globals": "^15.9.0",
+    "prisma": "^5.20.0",
+    "typescript-eslint": "^8.7.0"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@prisma/client": "5.20.0",
     "@types/express": "^5.0.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "croner": "^8.1.2",
     "express": "^5.0.0",
     "express-fileupload": "^1.5.1",
     "jsonwebtoken": "^9.0.2",
