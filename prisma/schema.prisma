@@ -9,6 +9,116 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("APP_DATABASE_URL")
+}
+
+// [Accounts]
+
+model Admin {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+
+  firstName String
+  lastName  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserType {
+  INTERNAL
+  EXTERNAL
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  type     UserType
+
+  phoneNumber String
+  firstName   String
+  lastName    String?
+
+  // credits in hours
+  credits Int
+
+  Renting     Renting[]
+  CreditTopup CreditTopup[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [Locker]
+model Locker {
+  id        Int    @id @default(autoincrement())
+  machineId String @unique // unique identifier of the locker machine
+
+  name        String
+  location    String
+  description String @db.Text
+
+  Rooms Rooms[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [Locker Rooms] - buat sekarang MAX 4 rooms limitasi machine nya
+model Rooms {
+  id Int @id @default(autoincrement())
+
+  locker   Locker @relation(fields: [lockerId], references: [id], onDelete: Cascade)
+  lockerId Int
+
+  name String
+  size String
+
+  Renting Renting[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [Locker Renting]
+enum RentStatus {
+  ACTIVE
+  EXPIRED
+}
+
+model Renting {
+  id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  room   Rooms @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId Int
+
+  status RentStatus
+
+  startTime DateTime
+  endTime   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [Credit Topup Transaction]
+model CreditTopup {
+  id            Int    @id @default(autoincrement())
+  transactionID String @unique
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  amount Int
+
+  validatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
