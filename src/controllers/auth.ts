@@ -2,7 +2,11 @@ import type { Request, Response } from "express";
 import db from "@/services/db";
 import jwt from "jsonwebtoken";
 import ENV from "@/utils/env";
-import { userLoginSchema, userUpdatableSchema } from "@/models/user";
+import {
+  adminUpdatableSchema,
+  userLoginSchema,
+  userUpdatableSchema,
+} from "@/models/user";
 import { success, unauthorized } from "@/utils/responses";
 
 export const login = async (req: Request, res: Response) => {
@@ -108,6 +112,40 @@ export const me = async (req: Request, res: Response) => {
   return success(res, "User data", req.user);
 };
 
+export const updateProfile = async (req: Request, res: Response) => {
+  if (req.user.role === "admin") {
+    const body = await adminUpdatableSchema._def.left
+      .partial()
+      .parseAsync(req.body);
+
+    await db.admin.update({
+      where: {
+        id: req.user.data.id,
+      },
+      data: {
+        ...body,
+      },
+    });
+
+    return success(res, "Profile updated");
+  }
+
+  const body = await userUpdatableSchema._def.left
+    .partial()
+    .parseAsync(req.body);
+
+  await db.user.update({
+    where: {
+      id: req.user.data.id,
+    },
+    data: {
+      ...body,
+    },
+  });
+
+  return success(res, "Profile updated");
+};
+
 // register
 export const register = async (req: Request, res: Response) => {
   const body = await userUpdatableSchema.parseAsync(req.body);
@@ -128,7 +166,7 @@ export const register = async (req: Request, res: Response) => {
     data: {
       ...body,
       password: hashedPassword,
-      credits: 72, // initial weekly credits
+      credits: 24, // initial weekly credits
     },
   });
 

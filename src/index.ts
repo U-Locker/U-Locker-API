@@ -21,11 +21,12 @@ import { ZodError } from "zod";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 
 // [Jobs]
-import resetCreditJob from "./jobs/resetCredit";
+import resetCreditJob from "@/jobs/resetCredit";
 
 // [Route imports]
 import indexRoute from "@/routes/index";
 import authRouter from "@/routes/auth";
+import mq from "@/services/mqtt";
 
 const app = Express();
 app.use(cookieParser());
@@ -89,4 +90,9 @@ app.listen(ENV.APP_PORT, () => {
       cron.name
     } started : ${cron.nextRun()} - ${cron.isRunning()}`
   );
+
+  // [MQTT Handler]
+  mq.on("message", (topic, message) => {
+    console.log(`[🐶]: ${topic} - ${message}`);
+  });
 });

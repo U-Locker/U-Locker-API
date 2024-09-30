@@ -12,6 +12,13 @@ const roomsSchema = z.object({
     .int("Locker ID must be an integer")
     .positive("Locker ID must be a positive number"),
 
+  doorId: z
+    .number({
+      required_error: "Door ID is required",
+      invalid_type_error: "Door ID must be a number",
+    })
+    .positive("Door ID must be a positive number"),
+
   name: z
     .string({
       required_error: "Room name is required",
@@ -48,6 +55,7 @@ const roomsSchema = z.object({
 
 export const roomsUpdatableSchema = roomsSchema.pick({
   lockerId: true,
+  doorId: true,
   name: true,
   size: true,
 });

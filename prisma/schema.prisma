@@ -42,6 +42,9 @@ model User {
   firstName   String
   lastName    String?
 
+  // ktmId is optional for external user
+  ktmUid String?
+
   // credits in hours
   credits Int
 
@@ -70,6 +73,8 @@ model Locker {
 // [Locker Rooms] - buat sekarang MAX 4 rooms limitasi machine nya
 model Rooms {
   id Int @id @default(autoincrement())
+
+  doorId Int
 
   locker   Locker @relation(fields: [lockerId], references: [id], onDelete: Cascade)
   lockerId Int

@@ -4,11 +4,11 @@ import db from "@/services/db";
 const resetCredit = async () => {
   await db.user.updateMany({
     data: {
-      credits: 72, // reset to 72
+      credits: 24, // reset to 24
     },
   });
 
-  console.log("[🦊]: Credit resetted to 72");
+  console.log("[🦊]: Credit resetted to 24");
 };
 
 const resetCreditJob = () => {
