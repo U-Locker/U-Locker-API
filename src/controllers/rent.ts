@@ -3,6 +3,8 @@ import db from "@/services/db";
 import {} from "@/models/user";
 import { notFound, success, unauthorized } from "@/utils/responses";
 import idSchema from "@/models/idSchema";
+import mq from "@/services/mqtt";
+import ENV from "@/utils/env";
 
 // [GET]: /rent/history
 export const rentHistory = async (req: Request, res: Response) => {
@@ -52,6 +54,17 @@ export const openRoom = async (req: Request, res: Response) => {
     where: {
       id: rentId,
     },
+    include: {
+      room: {
+        select: {
+          locker: {
+            select: {
+              machineId: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!rent) {
@@ -63,6 +76,10 @@ export const openRoom = async (req: Request, res: Response) => {
   }
 
   // send command to open room to hardware using MQTT
+  mq.publish(
+    ENV.APP_MQTT_TOPIC_COMMAND,
+    `${rent.room.locker.machineId}#OPEN_ROOM#${rent.roomId}`
+  );
 
   return success(res, "Room opened");
 };

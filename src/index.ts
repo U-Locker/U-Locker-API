@@ -143,7 +143,7 @@ app.listen(ENV.APP_PORT, () => {
         // send command to open room
         mq.publish(
           ENV.APP_MQTT_TOPIC_COMMAND,
-          `${renting.room.locker.machineId}#OPEN_ROOM#${renting.room}`
+          `${renting.room.locker.machineId}#OPEN_ROOM#${renting.room.doorId}`
         );
       }
 
