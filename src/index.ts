@@ -28,6 +28,8 @@ import resetCreditJob from "@/jobs/resetCredit";
 import indexRoute from "@/routes/index";
 import authRouter from "@/routes/auth";
 import nfcRouter from "@/routes/nfc";
+import lockerRouter from "@/routes/locker";
+import roomRouter from "@/routes/rooms";
 
 // [MQTT]
 import mq from "@/services/mqtt";
@@ -63,6 +65,8 @@ app.use(
 app.use(indexRoute);
 app.use("/auth", authRouter);
 app.use("/nfc", nfcRouter);
+app.use("/locker", lockerRouter);
+app.use("/room", roomRouter);
 
 // [Global 404]
 app.all("/*path", (_req: Request, res: Response) => {
