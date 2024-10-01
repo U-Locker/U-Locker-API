@@ -6,6 +6,7 @@ import Express, {
 import cors from "cors";
 import path from "path";
 import cookieParser from "cookie-parser";
+import db from "@/services/db";
 
 import ENV from "@/utils/env";
 import {
@@ -26,7 +27,11 @@ import resetCreditJob from "@/jobs/resetCredit";
 // [Route imports]
 import indexRoute from "@/routes/index";
 import authRouter from "@/routes/auth";
+import nfcRouter from "@/routes/nfc";
+
+// [MQTT]
 import mq from "@/services/mqtt";
+import { parsePayload } from "@/utils/parser";
 
 const app = Express();
 app.use(cookieParser());
@@ -57,6 +62,7 @@ app.use(
 // [Routes]
 app.use(indexRoute);
 app.use("/auth", authRouter);
+app.use("/nfc", nfcRouter);
 
 // [Global 404]
 app.all("/*path", (_req: Request, res: Response) => {
@@ -92,7 +98,42 @@ app.listen(ENV.APP_PORT, () => {
   );
 
   // [MQTT Handler]
-  mq.on("message", (topic, message) => {
+  mq.on("message", async (topic, message) => {
     console.log(`[🐶]: ${topic} - ${message}`);
+    const parse = parsePayload(message.toString());
+
+    if (parse.command === "NFC_READ") {
+      console.log(`[🐶]: NFC_READ - ${parse.machineId} - ${parse.data}`);
+
+      if (!parse.data) {
+        console.log(`[🐶]: NFC Card not found`);
+        return;
+      }
+
+      const nfc = await db.nFCQueue.findFirst({
+        where: {
+          ktmUid: parse.data,
+        },
+      });
+
+      if (nfc) {
+        console.log(`[🐶]: NFC Card already on queue`);
+      }
+
+      const newNfc = await db.nFCQueue.create({
+        data: {
+          ktmUid: parse.data,
+          machineId: parse.machineId,
+        },
+      });
+
+      console.log(`[🐶]: NFC Card added to queue - ${newNfc.id}`);
+      return;
+    }
+
+    // other command only for acknowledgements
+    console.log(
+      `[🐶]: Command acks received - ${parse.command} - ${parse.data ?? "x"}`
+    );
   });
 });

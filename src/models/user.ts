@@ -26,6 +26,12 @@ const internalUser = z.object({
     })
     .email("Invalid email address")
     .endsWith("@student.umn.ac.id", "Email must be UMN student email"),
+
+  ktmUid: z.string({
+    required_error: "KTM UID is required",
+    invalid_type_error: "KTM UID must be a string",
+    message: "KTM UID is required",
+  }),
 });
 
 const base = z.object({

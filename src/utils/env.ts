@@ -5,9 +5,9 @@ const envs = [
   "APP_JWT_SECRET",
   "APP_DATABASE_URL",
   "APP_MQTT_URL",
-  "APP_MQTT_USERNAME",
-  "APP_MQTT_PASSWORD",
-  "APP_MQTT_TOPIC",
+  "APP_MQTT_PORT",
+  "APP_MQTT_TOPIC_COMMAND",
+  "APP_MQTT_TOPIC_RESPONSE",
 ];
 
 envs.forEach((env) => {
@@ -25,9 +25,10 @@ const ENV = {
   APP_DATABASE_URL:
     Bun.env.APP_DB_URL || "mysql://root@localhost:3306/mxm24_db",
   APP_MQTT_URL: Bun.env.APP_MQTT_URL || "mqtt://localhost:1883",
-  APP_MQTT_USERNAME: Bun.env.APP_MQTT_USERNAME || "admin",
-  APP_MQTT_PASSWORD: Bun.env.APP_MQTT_PASSWORD || "secret123!",
-  APP_MQTT_TOPIC: Bun.env.APP_MQTT_TOPIC || "/u-locker",
+  APP_MQTT_PORT: Number(Bun.env.APP_MQTT_PORT) || 1883,
+  APP_MQTT_TOPIC_COMMAND: Bun.env.APP_MQTT_TOPIC_COMMAND || "u-locker/command",
+  APP_MQTT_TOPIC_RESPONSE:
+    Bun.env.APP_MQTT_TOPIC_RESPONSE || "u-locker/response",
 };
 
 export default ENV;

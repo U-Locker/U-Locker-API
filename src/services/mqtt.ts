@@ -3,18 +3,18 @@ import mqtt from "mqtt";
 
 const mqttSingleton = () => {
   const client = mqtt.connect(ENV.APP_MQTT_URL, {
-    username: ENV.APP_MQTT_USERNAME,
-    password: ENV.APP_MQTT_PASSWORD,
+    // username: ENV.APP_MQTT_USERNAME,
+    // password: ENV.APP_MQTT_PASSWORD,
     clientId: "u-locker_mqtt",
     clean: true,
     connectTimeout: 4000,
-    protocol: "mqtts",
+    protocol: "mqtt",
   });
 
   client.on("connect", () => {
     console.log("[🐶]: Connected to MQTT broker");
 
-    client.subscribe(ENV.APP_MQTT_TOPIC, (err) => {
+    client.subscribe(ENV.APP_MQTT_TOPIC_RESPONSE, (err) => {
       if (err) {
         console.error("[🐶]: Error subscribing to topic", err);
         return;

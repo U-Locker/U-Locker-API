@@ -127,3 +127,13 @@ model CreditTopup {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model NFCQueue {
+  id Int @id @default(autoincrement())
+
+  machineId String
+  ktmUid    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -66,6 +66,7 @@ export const verifyJwt = async (
         id: true,
         email: true,
         type: true,
+        ktmUid: true,
         firstName: true,
         lastName: true,
         phoneNumber: true,

@@ -8,6 +8,7 @@ import {
   userUpdatableSchema,
 } from "@/models/user";
 import { success, unauthorized } from "@/utils/responses";
+import mq from "@/services/mqtt";
 
 export const login = async (req: Request, res: Response) => {
   const body = await userLoginSchema.parseAsync(req.body);
@@ -169,6 +170,28 @@ export const register = async (req: Request, res: Response) => {
       credits: 24, // initial weekly credits
     },
   });
+
+  if (body.type === "INTERNAL") {
+    // delete nfc queue
+    const nfc = await db.nFCQueue.findFirst({
+      where: {
+        ktmUid: body.ktmUid,
+      },
+    });
+
+    if (nfc) {
+      await db.nFCQueue.delete({
+        where: {
+          id: nfc.id,
+        },
+      });
+
+      mq.publish(
+        ENV.APP_MQTT_TOPIC_COMMAND,
+        `${nfc.machineId}#NFC_READ#${nfc.ktmUid}`
+      );
+    }
+  }
 
   return success(res, "Register success");
 };
