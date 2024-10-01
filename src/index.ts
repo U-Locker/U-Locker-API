@@ -110,6 +110,44 @@ app.listen(ENV.APP_PORT, () => {
         return;
       }
 
+      // check user ktmUid whos lending the locker
+
+      const renting = await db.renting.findFirst({
+        where: {
+          user: {
+            ktmUid: parse.data,
+          },
+          status: "ACTIVE",
+        },
+        select: {
+          room: {
+            include: {
+              locker: {
+                select: {
+                  machineId: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (renting) {
+        console.log(`[🐶]: NFC Card already renting - ${renting.room}`);
+
+        if (renting.room.locker.machineId !== parse.machineId) {
+          console.log(`[🐶]: NFC Card not renting on this locker`);
+          return;
+        }
+
+        // send command to open room
+        mq.publish(
+          ENV.APP_MQTT_TOPIC_COMMAND,
+          `${renting.room.locker.machineId}#OPEN_ROOM#${renting.room}`
+        );
+      }
+
+      // handle KTM not found
       const nfc = await db.nFCQueue.findFirst({
         where: {
           ktmUid: parse.data,
