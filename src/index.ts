@@ -40,7 +40,7 @@ app.use(cookieParser());
 
 // [CORS]
 const allowedOrigins = [
-  "https://api.ulocker.com", // production client
+  "https://ulocker.rdhwan.dev", // production client
   "http://localhost:5173", // development client
 ];
 
