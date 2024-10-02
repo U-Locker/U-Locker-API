@@ -4,7 +4,9 @@ import db from "@/services/db";
 const resetCredit = async () => {
   await db.user.updateMany({
     data: {
-      credits: 24, // reset to 24
+      credits: {
+        increment: 3, // increment 3 jam
+      },
     },
   });
 

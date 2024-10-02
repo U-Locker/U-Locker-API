@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import db from "@/services/db";
-import { notFound, success, validationError } from "@/utils/responses";
+import { success, validationError } from "@/utils/responses";
 import idSchema from "@/models/idSchema";
 import { lockerUpdatableSchema } from "@/models/locker";
 
@@ -19,15 +19,34 @@ export const getLockerById = async (req: Request, res: Response) => {
     return validationError(res, "Locker ID is required");
   }
 
-  const locker = await db.locker.findUnique({
-    where: {
-      id: lockerId,
-    },
-  });
-
-  if (!locker) {
-    return notFound(res, "Locker not found");
-  }
+  const locker =
+    req.user.role === "admin"
+      ? await db.locker.findUnique({
+          where: {
+            id: lockerId,
+          },
+          include: {
+            Rooms: true,
+          },
+        })
+      : await db.locker.findUnique({
+          where: {
+            id: lockerId,
+          },
+          include: {
+            Rooms: {
+              where: {
+                Renting: {
+                  some: {
+                    status: {
+                      notIn: ["ACTIVE", "OVERDUE"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
 
   return success(res, "Locker details", locker);
 };

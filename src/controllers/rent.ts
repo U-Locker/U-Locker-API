@@ -1,12 +1,12 @@
 import type { Request, Response } from "express";
 import db from "@/services/db";
-import {} from "@/models/user";
-import { notFound, success, unauthorized } from "@/utils/responses";
+import { forbidden, notFound, success } from "@/utils/responses";
 import idSchema from "@/models/idSchema";
 import mq from "@/services/mqtt";
 import ENV from "@/utils/env";
+import { rentingUpdatableSchema } from "@/models/renting";
 
-// [GET]: /rent/history
+// [GET]: /rent
 export const rentHistory = async (req: Request, res: Response) => {
   const history = await db.renting.findMany({
     where: {
@@ -22,7 +22,9 @@ export const activeRent = async (req: Request, res: Response) => {
   const activeRent = await db.renting.findFirst({
     where: {
       userId: req.user.data.id,
-      status: "ACTIVE",
+      status: {
+        in: ["ACTIVE", "OVERDUE"],
+      },
     },
   });
 
@@ -43,7 +45,28 @@ export const getRentById = async (req: Request, res: Response) => {
     return notFound(res, "Rent not found");
   }
 
-  return success(res, "Rent details", rent);
+  // check overdue
+  const endTime = new Date(rent.endTime);
+  const currentTime = new Date();
+
+  if (endTime < currentTime) {
+    await db.renting.update({
+      where: {
+        id: rentId,
+      },
+      data: {
+        status: "OVERDUE",
+      },
+    });
+  }
+
+  const updatedRent = await db.renting.findUnique({
+    where: {
+      id: rentId,
+    },
+  });
+
+  return success(res, "Rent details", updatedRent);
 };
 
 // [PUT]: /rent/:rentId - open room if rent is active
@@ -62,6 +85,7 @@ export const openRoom = async (req: Request, res: Response) => {
               machineId: true,
             },
           },
+          doorId: true,
         },
       },
     },
@@ -71,14 +95,39 @@ export const openRoom = async (req: Request, res: Response) => {
     return notFound(res, "Rent not found");
   }
 
-  if (rent.status !== "ACTIVE") {
-    return unauthorized(res, "Rent is not active");
+  // check if endTime is passed and reduce credits
+  const endTime = new Date(rent.endTime);
+  const currentTime = new Date();
+
+  if (endTime < currentTime) {
+    await db.renting.update({
+      where: {
+        id: rentId,
+      },
+      data: {
+        status: "OVERDUE",
+      },
+    });
+    mq.publish(
+      ENV.APP_MQTT_TOPIC_COMMAND,
+      `${rent.room.locker.machineId}#LCD#Room overdue, please pay fine first on the app`
+    );
+    return forbidden(res, "Room overdue, please pay fine first on the app");
   }
+
+  if (rent.status !== "ACTIVE") {
+    return forbidden(res, "Rent is not active");
+  }
+
+  mq.publish(
+    ENV.APP_MQTT_TOPIC_COMMAND,
+    `${rent.room.locker.machineId}#LCD#Opening Room ${rent.room.doorId}...`
+  );
 
   // send command to open room to hardware using MQTT
   mq.publish(
     ENV.APP_MQTT_TOPIC_COMMAND,
-    `${rent.room.locker.machineId}#OPEN_ROOM#${rent.roomId}`
+    `${rent.room.locker.machineId}#OPEN_ROOM#${rent.room.doorId}`
   );
 
   return success(res, "Room opened");
@@ -92,36 +141,29 @@ export const stopRent = async (req: Request, res: Response) => {
     where: {
       id: rentId,
     },
+    include: {
+      user: true,
+    },
   });
 
   if (!rent) {
     return notFound(res, "Rent not found");
   }
 
-  if (rent.status !== "ACTIVE") {
-    return unauthorized(res, "Rent is not active");
+  if (!["ACTIVE", "OVERDUE"].includes(rent.status)) {
+    return forbidden(res, "Rent is not active");
   }
 
   // deduct credits from user if rent is stopped after endTime
   const endTime = new Date(rent.endTime);
   const currentTime = new Date();
 
-  if (endTime > currentTime) {
-    const diff = endTime.getTime() - currentTime.getTime();
-    const diffHours = Math.floor(diff / (1000 * 60 * 60));
+  const diff = endTime.getTime() - currentTime.getTime();
+  const diffHours = Math.floor(diff / (1000 * 60 * 60));
 
-    if (diffHours > 0) {
-      await db.user.update({
-        where: {
-          id: rent.userId,
-        },
-        data: {
-          credits: {
-            decrement: diffHours,
-          },
-        },
-      });
-    }
+  // check if user has enough credits to stop rent
+  if (diffHours > rent.user.credits) {
+    return forbidden(res, "Insufficient credits to stop rent");
   }
 
   await db.renting.update({
@@ -130,10 +172,44 @@ export const stopRent = async (req: Request, res: Response) => {
     },
     data: {
       status: "EXPIRED",
+      user: {
+        update: {
+          credits: {
+            decrement: diffHours,
+          },
+        },
+      },
     },
   });
 
   return success(res, "Rent stopped");
+};
+
+// [POST]: /rent
+export const rentRoom = async (req: Request, res: Response) => {
+  const body = await rentingUpdatableSchema.parseAsync(req.body);
+
+  const room = await db.rooms.findUnique({
+    where: {
+      id: body.roomId,
+    },
+  });
+
+  if (!room) {
+    return notFound(res, "Room not found");
+  }
+
+  const rent = await db.renting.create({
+    data: {
+      userId: req.user.data.id,
+      roomId: body.roomId,
+      startTime: new Date(body.startTime),
+      endTime: new Date(body.endTime), // 1 hour
+      status: "ACTIVE",
+    },
+  });
+
+  return success(res, "Room rented successfully", rent);
 };
 
 // // [GET]: /rent/:lockerId/

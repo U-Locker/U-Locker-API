@@ -167,7 +167,7 @@ export const register = async (req: Request, res: Response) => {
     data: {
       ...body,
       password: hashedPassword,
-      credits: 24, // initial weekly credits
+      credits: 24, // initial credits
     },
   });
 

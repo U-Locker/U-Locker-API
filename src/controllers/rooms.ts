@@ -3,6 +3,8 @@ import db from "@/services/db";
 import { notFound, success, validationError } from "@/utils/responses";
 import idSchema from "@/models/idSchema";
 import { roomsUpdatableSchema } from "@/models/rooms";
+import mq from "@/services/mqtt";
+import ENV from "@/utils/env";
 
 // [GET]: /locker/:lockrId/rooms
 export const getRooms = async (req: Request, res: Response) => {
@@ -115,4 +117,38 @@ export const deleteRoom = async (req: Request, res: Response) => {
   });
 
   return success(res, "Room deleted");
+};
+
+export const overrideOpenRoom = async (req: Request, res: Response) => {
+  const lockerId = await idSchema.parseAsync(req.params.lockerId);
+  const roomId = await idSchema.parseAsync(req.params.roomId);
+
+  if (!lockerId || !roomId) {
+    return validationError(res, "Locker ID and Room ID are required");
+  }
+
+  const room = await db.rooms.findUnique({
+    where: {
+      id: roomId,
+      lockerId: lockerId,
+    },
+    include: {
+      locker: {
+        select: {
+          machineId: true,
+        },
+      },
+    },
+  });
+
+  if (!room) {
+    return notFound(res, "Room not found");
+  }
+
+  mq.publish(
+    ENV.APP_MQTT_TOPIC_COMMAND,
+    `${room.locker.machineId}#OPEN_ROOM#${room.doorId}`
+  );
+
+  return success(res, "Room opened");
 };

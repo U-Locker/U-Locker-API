@@ -29,7 +29,7 @@ import indexRoute from "@/routes/index";
 import authRouter from "@/routes/auth";
 import nfcRouter from "@/routes/nfc";
 import lockerRouter from "@/routes/locker";
-import roomRouter from "@/routes/rooms";
+import rentRouter from "@/routes/rent";
 
 // [MQTT]
 import mq from "@/services/mqtt";
@@ -66,7 +66,7 @@ app.use(indexRoute);
 app.use("/auth", authRouter);
 app.use("/nfc", nfcRouter);
 app.use("/locker", lockerRouter);
-app.use("/room", roomRouter);
+app.use("/rent", rentRouter);
 
 // [Global 404]
 app.all("/*path", (_req: Request, res: Response) => {
@@ -124,6 +124,9 @@ app.listen(ENV.APP_PORT, () => {
           status: "ACTIVE",
         },
         select: {
+          id: true,
+          status: true,
+          endTime: true,
           room: {
             include: {
               locker: {
@@ -131,6 +134,11 @@ app.listen(ENV.APP_PORT, () => {
                   machineId: true,
                 },
               },
+            },
+          },
+          user: {
+            select: {
+              credits: true,
             },
           },
         },
@@ -143,6 +151,60 @@ app.listen(ENV.APP_PORT, () => {
           console.log(`[🐶]: NFC Card not renting on this locker`);
           return;
         }
+
+        // check if endTime is passed and reduce credits
+        const endTime = new Date(renting.endTime);
+        const currentTime = new Date();
+
+        if (endTime < currentTime) {
+          const diff = endTime.getTime() - currentTime.getTime();
+          const diffHours = Math.floor(diff / (1000 * 60 * 60));
+
+          if (diffHours > 0) {
+            await db.renting.update({
+              where: {
+                id: renting.id,
+              },
+              data: {
+                status: "OVERDUE",
+                user: {
+                  update: {
+                    credits: {
+                      decrement: diffHours,
+                    },
+                  },
+                },
+              },
+            });
+          }
+        }
+
+        // re check the renting status
+        const finalRent = await db.renting.findUnique({
+          where: {
+            id: renting.id,
+          },
+          include: {
+            room: true,
+            user: true,
+          },
+        });
+
+        console.log(`[🐶]: Renting status - ${finalRent?.status}`);
+
+        if (finalRent?.status === "OVERDUE") {
+          mq.publish(
+            ENV.APP_MQTT_TOPIC_COMMAND,
+            `${renting.room.locker.machineId}#LCD#Room overdue, please pay fine first on the app`
+          );
+          console.log(`[🐶]: Renting is overdue`);
+          return;
+        }
+
+        mq.publish(
+          ENV.APP_MQTT_TOPIC_COMMAND,
+          `${renting.room.locker.machineId}#LCD#Opening Room ${renting.room.doorId}...`
+        );
 
         // send command to open room
         mq.publish(
