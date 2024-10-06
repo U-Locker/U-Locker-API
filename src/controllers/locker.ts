@@ -82,7 +82,23 @@ export const getLockerById = async (req: Request, res: Response) => {
           },
         });
 
-  return success(res, "Locker details", locker);
+  const active = await db.renting.count({
+    where: {
+      status: {
+        in: ["ACTIVE", "OVERDUE"],
+      },
+      room: {
+        lockerId,
+      },
+    },
+  });
+
+  const data = {
+    ...locker,
+    active,
+  };
+
+  return success(res, "Locker details", data);
 };
 
 // POST: /locker
