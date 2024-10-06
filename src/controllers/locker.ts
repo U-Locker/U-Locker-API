@@ -6,9 +6,43 @@ import { lockerUpdatableSchema } from "@/models/locker";
 
 // [GET]: /locker
 export const getLockers = async (req: Request, res: Response) => {
-  const lockers = await db.locker.findMany();
+  const lockers = await db.locker.findMany({
+    include: {
+      _count: {
+        select: {
+          Rooms: true,
+        },
+      },
+      Rooms: {
+        select: {
+          _count: {
+            select: {
+              Renting: {
+                where: {
+                  status: {
+                    in: ["ACTIVE", "OVERDUE"],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
 
-  return success(res, "Lockers", lockers);
+  const data = lockers.map((locker) => ({
+    ...locker,
+    total: locker._count.Rooms,
+
+    // count active and overdue renting
+    quota: locker.Rooms.map((room) => room._count.Renting).reduce(
+      (acc, curr) => acc + curr,
+      0
+    ),
+  }));
+
+  return success(res, "Lockers", data);
 };
 
 // [GET]: /locker/:lockerId
