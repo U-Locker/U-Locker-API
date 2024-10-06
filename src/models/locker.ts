@@ -10,7 +10,7 @@ const lockerSchema = z.object({
     })
 
     // format: "0cfa-4ed7-a8d7"
-    .length(6, "Machine ID must be 6 characters long")
+    .length(14, "Machine ID must be 14 characters long")
     .regex(
       /^[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}$/,
       "Invalid Machine ID format"
