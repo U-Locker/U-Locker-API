@@ -7,7 +7,7 @@ import {
   userLoginSchema,
   userUpdatableSchema,
 } from "@/models/user";
-import { success, unauthorized } from "@/utils/responses";
+import { success, unauthorized, validationError } from "@/utils/responses";
 import mq from "@/services/mqtt";
 
 export const login = async (req: Request, res: Response) => {
@@ -158,7 +158,7 @@ export const register = async (req: Request, res: Response) => {
   });
 
   if (user) {
-    return unauthorized(res, "Email already registered");
+    return validationError(res, "Email already registered");
   }
 
   const hashedPassword = await Bun.password.hash(body.password);
