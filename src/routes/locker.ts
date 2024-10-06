@@ -5,6 +5,7 @@ import {
   getLockerById,
   createLocker,
   updateLocker,
+  deleteLocker,
 } from "@/controllers/locker";
 import roomRouter from "@/routes/rooms";
 
@@ -17,6 +18,9 @@ router.get("/:lockerId", verifyJwt, getLockerById);
 router.post("/", verifyJwt, verifyRole("admin"), createLocker);
 // PUT: /locker/:lockerId
 router.put("/:lockerId", verifyJwt, verifyRole("admin"), updateLocker);
+
+// DELETE: /locker/:lockerId
+router.delete("/:lockerId", verifyJwt, verifyRole("admin"), deleteLocker);
 
 // mount room router
 router.use(roomRouter);
