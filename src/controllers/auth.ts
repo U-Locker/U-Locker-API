@@ -46,7 +46,7 @@ export const login = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: ENV.NODE_ENV === "production",
       partitioned: true,
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -90,7 +90,7 @@ export const login = async (req: Request, res: Response) => {
     httpOnly: true,
     secure: ENV.NODE_ENV === "production",
     partitioned: true,
-    sameSite: "lax",
+    sameSite: "none",
     maxAge: 30 * 24 * 60 * 60 * 1000,
   });
 
@@ -104,7 +104,7 @@ export const logout = async (req: Request, res: Response) => {
     httpOnly: true,
     secure: ENV.NODE_ENV === "production",
     partitioned: true,
-    sameSite: "lax",
+    sameSite: "none",
   });
   return success(res, "Logout success");
 };
