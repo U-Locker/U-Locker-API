@@ -17,7 +17,8 @@ const roomsSchema = z.object({
       required_error: "Door ID is required",
       invalid_type_error: "Door ID must be a number",
     })
-    .positive("Door ID must be a positive number"),
+    // .positive("Door ID must be a positive number"),
+    .nonnegative("Door ID must be a non-negative number"),
 
   name: z
     .string({
