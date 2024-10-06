@@ -60,7 +60,17 @@ export const getLockerById = async (req: Request, res: Response) => {
             id: lockerId,
           },
           include: {
-            Rooms: true,
+            Rooms: {
+              include: {
+                Renting: {
+                  where: {
+                    status: {
+                      in: ["ACTIVE", "OVERDUE"],
+                    },
+                  },
+                },
+              },
+            },
           },
         })
       : await db.locker.findUnique({
