@@ -93,9 +93,22 @@ export const getLockerById = async (req: Request, res: Response) => {
     },
   });
 
+  const history = await db.renting.count({
+    where: {
+      room: {
+        lockerId,
+      },
+      // weekly history
+      createdAt: {
+        gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+      },
+    },
+  });
+
   const data = {
     ...locker,
     active,
+    history,
   };
 
   return success(res, "Locker details", data);
