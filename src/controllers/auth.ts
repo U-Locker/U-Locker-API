@@ -186,7 +186,7 @@ export const register = async (req: Request, res: Response) => {
         },
       });
 
-      mq.publish(
+      await mq.publishAsync(
         ENV.APP_MQTT_TOPIC_COMMAND,
         `${nfc.machineId}#NFC_READ#${nfc.ktmUid}`
       );

@@ -103,141 +103,145 @@ app.listen(ENV.APP_PORT, () => {
 
   // [MQTT Handler]
   mq.on("message", async (topic, message) => {
-    console.log(`[🐶]: ${topic} - ${message}`);
-    const parse = parsePayload(message.toString());
+    try {
+      console.log(`[🐶]: ${topic} - ${message}`);
+      const parse = parsePayload(message.toString());
 
-    if (parse.command === "NFC_READ") {
-      console.log(`[🐶]: NFC_READ - ${parse.machineId} - ${parse.data}`);
+      if (parse.command === "NFC_READ") {
+        console.log(`[🐶]: NFC_READ - ${parse.machineId} - ${parse.data}`);
 
-      if (!parse.data) {
-        console.log(`[🐶]: NFC Card not found`);
-        return;
-      }
-
-      // check user ktmUid whos lending the locker
-
-      const renting = await db.renting.findFirst({
-        where: {
-          user: {
-            ktmUid: parse.data,
-          },
-          status: "ACTIVE",
-        },
-        select: {
-          id: true,
-          status: true,
-          endTime: true,
-          room: {
-            include: {
-              locker: {
-                select: {
-                  machineId: true,
-                },
-              },
-            },
-          },
-          user: {
-            select: {
-              credits: true,
-            },
-          },
-        },
-      });
-
-      if (renting) {
-        console.log(`[🐶]: NFC Card already renting - ${renting.room}`);
-
-        if (renting.room.locker.machineId !== parse.machineId) {
-          console.log(`[🐶]: NFC Card not renting on this locker`);
+        if (!parse.data) {
+          console.log(`[🐶]: NFC Card not found`);
           return;
         }
 
-        // check if endTime is passed and reduce credits
-        const endTime = new Date(renting.endTime);
-        const currentTime = new Date();
+        // check user ktmUid whos lending the locker
 
-        if (endTime < currentTime) {
-          const diff = endTime.getTime() - currentTime.getTime();
-          const diffHours = Math.floor(diff / (1000 * 60 * 60));
-
-          if (diffHours > 0) {
-            await db.renting.update({
-              where: {
-                id: renting.id,
-              },
-              data: {
-                status: "OVERDUE",
-                user: {
-                  update: {
-                    credits: {
-                      decrement: diffHours,
-                    },
+        const renting = await db.renting.findFirst({
+          where: {
+            user: {
+              ktmUid: parse.data,
+            },
+            status: "ACTIVE",
+          },
+          select: {
+            id: true,
+            status: true,
+            endTime: true,
+            room: {
+              include: {
+                locker: {
+                  select: {
+                    machineId: true,
                   },
                 },
               },
-            });
-          }
-        }
-
-        // re check the renting status
-        const finalRent = await db.renting.findUnique({
-          where: {
-            id: renting.id,
-          },
-          include: {
-            room: true,
-            user: true,
+            },
+            user: {
+              select: {
+                credits: true,
+              },
+            },
           },
         });
 
-        console.log(`[🐶]: Renting status - ${finalRent?.status}`);
+        if (renting) {
+          console.log(`[🐶]: NFC Card already renting - ${renting.room}`);
 
-        if (finalRent?.status === "OVERDUE") {
-          mq.publish(
+          if (renting.room.locker.machineId !== parse.machineId) {
+            console.log(`[🐶]: NFC Card not renting on this locker`);
+            return;
+          }
+
+          // check if endTime is passed and reduce credits
+          const endTime = new Date(renting.endTime);
+          const currentTime = new Date();
+
+          if (endTime < currentTime) {
+            const diff = endTime.getTime() - currentTime.getTime();
+            const diffHours = Math.floor(diff / (1000 * 60 * 60));
+
+            if (diffHours > 0) {
+              await db.renting.update({
+                where: {
+                  id: renting.id,
+                },
+                data: {
+                  status: "OVERDUE",
+                  user: {
+                    update: {
+                      credits: {
+                        decrement: diffHours,
+                      },
+                    },
+                  },
+                },
+              });
+            }
+          }
+
+          // re check the renting status
+          const finalRent = await db.renting.findUnique({
+            where: {
+              id: renting.id,
+            },
+            include: {
+              room: true,
+              user: true,
+            },
+          });
+
+          console.log(`[🐶]: Renting status - ${finalRent?.status}`);
+
+          if (finalRent?.status === "OVERDUE") {
+            await mq.publishAsync(
+              ENV.APP_MQTT_TOPIC_COMMAND,
+              `${renting.room.locker.machineId}#LCD#Room overdue, please pay fine first on the app`
+            );
+            console.log(`[🐶]: Renting is overdue`);
+            return;
+          }
+
+          await mq.publishAsync(
             ENV.APP_MQTT_TOPIC_COMMAND,
-            `${renting.room.locker.machineId}#LCD#Room overdue, please pay fine first on the app`
+            `${renting.room.locker.machineId}#LCD#Opening Room ${renting.room.doorId}...`
           );
-          console.log(`[🐶]: Renting is overdue`);
-          return;
+
+          // send command to open room
+          await mq.publishAsync(
+            ENV.APP_MQTT_TOPIC_COMMAND,
+            `${renting.room.locker.machineId}#OPEN_ROOM#${renting.room.doorId}`
+          );
         }
 
-        mq.publish(
-          ENV.APP_MQTT_TOPIC_COMMAND,
-          `${renting.room.locker.machineId}#LCD#Opening Room ${renting.room.doorId}...`
-        );
+        // handle KTM not found
+        const nfc = await db.nFCQueue.findFirst({
+          where: {
+            ktmUid: parse.data,
+          },
+        });
 
-        // send command to open room
-        mq.publish(
-          ENV.APP_MQTT_TOPIC_COMMAND,
-          `${renting.room.locker.machineId}#OPEN_ROOM#${renting.room.doorId}`
-        );
+        if (nfc) {
+          console.log(`[🐶]: NFC Card already on queue`);
+        }
+
+        const newNfc = await db.nFCQueue.create({
+          data: {
+            ktmUid: parse.data,
+            machineId: parse.machineId,
+          },
+        });
+
+        console.log(`[🐶]: NFC Card added to queue - ${newNfc.id}`);
+        return;
       }
 
-      // handle KTM not found
-      const nfc = await db.nFCQueue.findFirst({
-        where: {
-          ktmUid: parse.data,
-        },
-      });
-
-      if (nfc) {
-        console.log(`[🐶]: NFC Card already on queue`);
-      }
-
-      const newNfc = await db.nFCQueue.create({
-        data: {
-          ktmUid: parse.data,
-          machineId: parse.machineId,
-        },
-      });
-
-      console.log(`[🐶]: NFC Card added to queue - ${newNfc.id}`);
-      return;
+      // other command only for acknowledgements
+      console.log(
+        `[🐶]: Command acks received - ${parse.command} - ${parse.data ?? "x"}`
+      );
+    } catch (err) {
+      console.error("[🐶]: Error handling MQTT message", err);
     }
-
-    // other command only for acknowledgements
-    console.log(
-      `[🐶]: Command acks received - ${parse.command} - ${parse.data ?? "x"}`
-    );
   });
 });

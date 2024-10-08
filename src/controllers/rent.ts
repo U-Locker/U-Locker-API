@@ -108,7 +108,7 @@ export const openRoom = async (req: Request, res: Response) => {
         status: "OVERDUE",
       },
     });
-    mq.publish(
+    await mq.publishAsync(
       ENV.APP_MQTT_TOPIC_COMMAND,
       `${rent.room.locker.machineId}#LCD#Room overdue, please pay fine first on the app`
     );
@@ -119,13 +119,13 @@ export const openRoom = async (req: Request, res: Response) => {
     return forbidden(res, "Rent is not active");
   }
 
-  mq.publish(
+  await mq.publishAsync(
     ENV.APP_MQTT_TOPIC_COMMAND,
     `${rent.room.locker.machineId}#LCD#Opening Room ${rent.room.doorId}...`
   );
 
   // send command to open room to hardware using MQTT
-  mq.publish(
+  await mq.publishAsync(
     ENV.APP_MQTT_TOPIC_COMMAND,
     `${rent.room.locker.machineId}#OPEN_ROOM#${rent.room.doorId}`
   );

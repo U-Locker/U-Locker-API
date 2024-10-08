@@ -145,7 +145,7 @@ export const overrideOpenRoom = async (req: Request, res: Response) => {
     return notFound(res, "Room not found");
   }
 
-  mq.publish(
+  await mq.publishAsync(
     ENV.APP_MQTT_TOPIC_COMMAND,
     `${room.locker.machineId}#OPEN_ROOM#${room.doorId}`
   );
