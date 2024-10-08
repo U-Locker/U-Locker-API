@@ -5,6 +5,8 @@ const mqttSingleton = () => {
   const client = mqtt.connect(ENV.APP_MQTT_URL, {
     // username: ENV.APP_MQTT_USERNAME,
     // password: ENV.APP_MQTT_PASSWORD,
+
+    port: ENV.APP_MQTT_PORT,
     clientId: "u-locker_mqtt",
     clean: true,
     connectTimeout: 4000,

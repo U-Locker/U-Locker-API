@@ -150,10 +150,5 @@ export const overrideOpenRoom = async (req: Request, res: Response) => {
     `${room.locker.machineId}#OPEN_ROOM#${room.doorId}`
   );
 
-  console.log(
-    ENV.APP_MQTT_TOPIC_COMMAND,
-    `${room.locker.machineId}#OPEN_ROOM#${room.doorId}`
-  );
-
   return success(res, "Room opened");
 };
