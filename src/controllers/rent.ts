@@ -127,7 +127,7 @@ export const openRoom = async (req: Request, res: Response) => {
   // send command to open room to hardware using MQTT
   await mq.publishAsync(
     ENV.APP_MQTT_TOPIC_COMMAND,
-    `${rent.room.locker.machineId}#OPEN_ROOM#${rent.room.doorId}`
+    `${rent.room.locker.machineId}#OPEN_DOOR#${rent.room.doorId}`
   );
 
   return success(res, "Room opened");
