@@ -68,6 +68,13 @@ export const getLockerById = async (req: Request, res: Response) => {
                       in: ["ACTIVE", "OVERDUE"],
                     },
                   },
+                  include: {
+                    user: {
+                      select: {
+                        firstName: true,
+                      },
+                    },
+                  },
                 },
               },
             },
