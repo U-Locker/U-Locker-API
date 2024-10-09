@@ -31,6 +31,26 @@ export const getLockers = async (req: Request, res: Response) => {
     },
   });
 
+  const rentingHistory = await db.locker.findMany({
+    include: {
+      Rooms: {
+        include: {
+          _count: {
+            select: {
+              Renting: {
+                where: {
+                  endTime: {
+                    gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
   const data = lockers.map((locker) => ({
     ...locker,
     total: locker._count.Rooms,
@@ -40,6 +60,11 @@ export const getLockers = async (req: Request, res: Response) => {
       (acc, curr) => acc + curr,
       0
     ),
+
+    // history count per week
+    history: rentingHistory
+      .find((hist) => hist.id === locker.id)
+      ?.Rooms.reduce((acc, curr) => acc + curr._count.Renting, 0),
   }));
 
   return success(res, "Lockers", data);
