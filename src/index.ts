@@ -42,6 +42,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   "https://ulocker.rdhwan.dev", // production client
   "http://localhost:5173", // development client
+  "https://localhost:5173", // development https client
 ];
 
 // [Global Middlewares]
