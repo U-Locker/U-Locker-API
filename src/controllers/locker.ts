@@ -119,7 +119,7 @@ export const getLockerById = async (req: Request, res: Response) => {
                     Renting: {
                       where: {
                         status: {
-                          notIn: ["ACTIVE", "OVERDUE"],
+                          in: ["ACTIVE", "OVERDUE"],
                         },
                       },
                     },
