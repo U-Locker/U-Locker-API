@@ -112,13 +112,12 @@ export const getLockerById = async (req: Request, res: Response) => {
             id: lockerId,
           },
           include: {
-            Rooms: true,
-            _count: {
-              select: {
-                Rooms: {
-                  where: {
+            Rooms: {
+              include: {
+                _count: {
+                  select: {
                     Renting: {
-                      some: {
+                      where: {
                         status: {
                           notIn: ["ACTIVE", "OVERDUE"],
                         },
