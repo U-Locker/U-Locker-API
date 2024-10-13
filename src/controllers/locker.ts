@@ -53,6 +53,8 @@ export const getLockers = async (req: Request, res: Response) => {
 
   const data = lockers.map((locker) => ({
     ...locker,
+    Rooms: undefined,
+    _count: undefined,
     total: locker._count.Rooms,
 
     // count active and overdue renting
@@ -110,12 +112,17 @@ export const getLockerById = async (req: Request, res: Response) => {
             id: lockerId,
           },
           include: {
-            Rooms: {
-              where: {
-                Renting: {
-                  some: {
-                    status: {
-                      notIn: ["ACTIVE", "OVERDUE"],
+            Rooms: true,
+            _count: {
+              select: {
+                Rooms: {
+                  where: {
+                    Renting: {
+                      some: {
+                        status: {
+                          notIn: ["ACTIVE", "OVERDUE"],
+                        },
+                      },
                     },
                   },
                 },
