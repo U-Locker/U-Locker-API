@@ -2,15 +2,29 @@ import Cron from "croner";
 import db from "@/services/db";
 
 const resetCredit = async () => {
-  await db.user.updateMany({
-    data: {
-      credits: {
-        increment: 3, // increment 3 jam
-      },
+  // add 3 free credits to all users
+  const users = await db.user.findMany({
+    select: {
+      id: true,
     },
   });
 
-  console.log("[🦊]: Credit resetted to 24");
+  const trx = users.map(
+    async (user) =>
+      await db.transaction.create({
+        data: {
+          userId: user.id,
+          amount: 3,
+          type: "IN",
+          transactionID: crypto.randomUUID(),
+          validatedAt: new Date(),
+        },
+      })
+  );
+
+  await Promise.all(trx);
+
+  console.log("[🦊]: Added 3 free weekly credits");
 };
 
 const resetCreditJob = () => {

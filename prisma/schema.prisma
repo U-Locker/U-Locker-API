@@ -46,11 +46,8 @@ model User {
   // ktmId is optional for external user
   ktmUid String?
 
-  // credits in hours
-  credits Int
-
   Renting     Renting[]
-  CreditTopup CreditTopup[]
+  Transaction Transaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -66,6 +63,8 @@ model Locker {
   description String @db.Text
 
   Rooms Rooms[]
+
+  lastSeenAt DateTime @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -92,7 +91,7 @@ model Rooms {
 // [Locker Renting]
 enum RentStatus {
   ACTIVE
-  EXPIRED
+  DONE
   OVERDUE
 }
 
@@ -107,6 +106,9 @@ model Renting {
 
   status RentStatus
 
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  transactionId Int
+
   startTime DateTime
   endTime   DateTime
 
@@ -114,17 +116,26 @@ model Renting {
   updatedAt DateTime @updatedAt
 }
 
-// [Credit Topup Transaction]
-model CreditTopup {
+// [Transaction]
+enum TransactionType {
+  IN
+  OUT
+}
+
+model Transaction {
   id            Int    @id @default(autoincrement())
   transactionID String @unique
 
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
 
-  amount Int
+  amount Int // in credits (1 credit = 1000 rupiah)
+
+  type TransactionType
 
   validatedAt DateTime?
+
+  Renting Renting[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

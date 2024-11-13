@@ -1,6 +1,6 @@
 import z from "zod";
 
-const creditTopupSchema = z.object({
+const transactionSchema = z.object({
   id: z.number().positive(),
 
   userId: z
@@ -44,11 +44,47 @@ const creditTopupSchema = z.object({
     .datetime("Updated at must be a datetime"),
 });
 
-export const creditTopupUpdatableSchema = creditTopupSchema.pick({
-  userId: true,
+export const transactionUpdatableSchema = transactionSchema.pick({
+  // userId: true,
   amount: true,
-  validatedAt: true,
+  // validatedAt: true,
 });
 
-export type CreditTopup = z.infer<typeof creditTopupSchema>;
-export type CreditTopupUpdatable = z.infer<typeof creditTopupUpdatableSchema>;
+export const midtransCallbackSchema = z.object({
+  transaction_status: z.string(),
+  transaction_id: z.string(),
+  order_id: z.string(),
+  transaction_time: z.string(),
+});
+
+export type Transaction = z.infer<typeof transactionSchema>;
+export type TransactionUpdatable = z.infer<typeof transactionUpdatableSchema>;
+export type MidtransCallback = z.infer<typeof midtransCallbackSchema>;
+
+export type MidtransStatus = {
+  status_code: string;
+  status_message: string;
+  transaction_id: string;
+  masked_card: string;
+  order_id: string;
+  payment_type: string;
+  transaction_time: string;
+  transaction_status:
+    | "capture"
+    | "settlement"
+    | "pending"
+    | "deny"
+    | "cancel"
+    | "expire";
+  fraud_status: "accept" | "challenge" | "deny";
+  approval_code: string;
+  signature_key: string;
+  bank: string;
+  gross_amount: string;
+  channel_response_code: string;
+  channel_response_message: string;
+  card_type: string;
+  payment_option_type: string;
+  shopeepay_reference_number: string;
+  reference_id: string;
+};

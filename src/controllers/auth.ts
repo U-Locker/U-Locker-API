@@ -9,6 +9,7 @@ import {
 } from "@/models/user";
 import { success, unauthorized, validationError } from "@/utils/responses";
 import mq from "@/services/mqtt";
+import crypto from "crypto";
 
 export const login = async (req: Request, res: Response) => {
   const body = await userLoginSchema.parseAsync(req.body);
@@ -167,7 +168,14 @@ export const register = async (req: Request, res: Response) => {
     data: {
       ...body,
       password: hashedPassword,
-      credits: 24, // initial credits
+      Transaction: {
+        create: {
+          type: "IN",
+          amount: 24,
+          transactionID: crypto.randomUUID(),
+          validatedAt: new Date(),
+        },
+      },
     },
   });
 

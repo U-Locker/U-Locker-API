@@ -29,6 +29,8 @@ const ENV = {
   APP_MQTT_TOPIC_COMMAND: Bun.env.APP_MQTT_TOPIC_COMMAND || "u-locker/command",
   APP_MQTT_TOPIC_RESPONSE:
     Bun.env.APP_MQTT_TOPIC_RESPONSE || "u-locker/response",
+  APP_MIDTRANS_ENV: Bun.env.APP_MIDTRANS_ENV || "sandbox",
+  APP_MIDTRANS_SERVER_KEY: Bun.env.APP_MIDTRANS_SERVER_KEY || "nonexist",
 };
 
 export default ENV;

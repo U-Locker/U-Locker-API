@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import db from "@/services/db";
-import { forbidden, notFound, success } from "@/utils/responses";
+import { badRequest, forbidden, notFound, success } from "@/utils/responses";
 import idSchema from "@/models/idSchema";
 import mq from "@/services/mqtt";
 import ENV from "@/utils/env";
@@ -143,6 +143,11 @@ export const stopRent = async (req: Request, res: Response) => {
     },
     include: {
       user: true,
+      room: {
+        include: {
+          locker: true,
+        },
+      },
     },
   });
 
@@ -150,39 +155,128 @@ export const stopRent = async (req: Request, res: Response) => {
     return notFound(res, "Rent not found");
   }
 
-  if (!["ACTIVE", "OVERDUE"].includes(rent.status)) {
+  if (rent.status === "DONE") {
     return forbidden(res, "Rent is not active");
   }
 
-  // deduct credits from user if rent is stopped after endTime
-  const endTime = new Date(rent.endTime);
-  const currentTime = new Date();
+  // check overdue
+  const rentTime = new Date(rent.endTime).getTime();
+  const currentTime = new Date().getTime();
+  const overdue = Math.floor((currentTime - rentTime) / (1000 * 60 * 60));
 
-  const diff = endTime.getTime() - currentTime.getTime();
-  const diffHours = Math.floor(diff / (1000 * 60 * 60));
+  const totalOverdue = overdue > 24 ? 24 : overdue;
 
-  // check if user has enough credits to stop rent
-  if (diffHours > rent.user.credits) {
-    return forbidden(res, "Insufficient credits to stop rent");
+  if (totalOverdue > 0) {
+    const userCredits = await db.transaction.aggregate({
+      _sum: {
+        amount: true,
+      },
+      where: {
+        userId: rent.userId,
+        type: "IN",
+        validatedAt: {
+          not: null,
+        },
+      },
+    });
+    const userPayment = await db.transaction.aggregate({
+      _sum: {
+        amount: true,
+      },
+      where: {
+        userId: rent.userId,
+        type: "OUT",
+        validatedAt: {
+          not: null,
+        },
+      },
+    });
+    const credits =
+      userCredits._sum.amount ?? 0 - (userPayment._sum.amount ?? 0);
+
+    if (overdue > credits) {
+      return success(res, "Insufficient credits to stop rent", {
+        status: "OVERDUE",
+        payment: overdue - credits,
+      });
+    }
+
+    await db.transaction.create({
+      data: {
+        user: {
+          connect: {
+            id: rent.userId,
+          },
+        },
+        amount: overdue,
+        type: "OUT",
+        transactionID: crypto.randomUUID(),
+        Renting: {
+          connect: {
+            id: rentId,
+          },
+        },
+        validatedAt: new Date(),
+      },
+    });
   }
+
+  // open door
+  await mq.publishAsync(
+    ENV.APP_MQTT_TOPIC_COMMAND,
+    `${rent.room.locker.machineId}#OPEN_DOOR#${rent.room.doorId}`
+  );
 
   await db.renting.update({
     where: {
       id: rentId,
     },
     data: {
-      status: "EXPIRED",
-      user: {
-        update: {
-          credits: {
-            decrement: diffHours,
+      status: "DONE",
+    },
+  });
+
+  const locker = await db.locker.findUnique({
+    where: {
+      machineId: rent.room.locker.machineId,
+    },
+    include: {
+      Rooms: {
+        include: {
+          Renting: {
+            where: {
+              status: "ACTIVE",
+            },
+            include: {
+              user: {
+                select: {
+                  ktmUid: true,
+                },
+              },
+            },
           },
         },
       },
     },
   });
 
-  return success(res, "Rent stopped");
+  // send current state to locker of rented rooms
+  const state =
+    locker?.Rooms.map((room) => {
+      return {
+        doorId: room.doorId,
+        ktmUid: room.Renting[0].user.ktmUid,
+      };
+    }) ?? [];
+
+  await mq.publishAsync(
+    ENV.APP_MQTT_TOPIC_COMMAND,
+    `${rent.room.locker.machineId}#STATE#${JSON.stringify(state)}`
+  );
+
+  return success(res, "Rent stopped successfully", {
+    status: "DONE",
+  });
 };
 
 // [POST]: /rent
@@ -193,21 +287,128 @@ export const rentRoom = async (req: Request, res: Response) => {
     where: {
       id: body.roomId,
     },
+    include: {
+      locker: true,
+    },
   });
 
   if (!room) {
     return notFound(res, "Room not found");
   }
 
-  const rent = await db.renting.create({
-    data: {
+  // validate start time and end time
+  const startTime = new Date(body.startTime);
+  const endTime = new Date(body.endTime);
+
+  if (startTime < new Date()) {
+    return badRequest(res, "Start time cannot be in the past");
+  }
+
+  if (endTime < startTime) {
+    return badRequest(res, "End time cannot be before start time");
+  }
+
+  // check if user credit is sufficient
+  const inTrx = await db.transaction.aggregate({
+    _sum: {
+      amount: true,
+    },
+    where: {
       userId: req.user.data.id,
-      roomId: body.roomId,
-      startTime: new Date(body.startTime),
-      endTime: new Date(body.endTime), // 1 hour
-      status: "ACTIVE",
+      type: "IN",
+      validatedAt: {
+        not: null,
+      },
     },
   });
+
+  const outTrx = await db.transaction.aggregate({
+    _sum: {
+      amount: true,
+    },
+    where: {
+      userId: req.user.data.id,
+      type: "OUT",
+      validatedAt: {
+        not: null,
+      },
+    },
+  });
+
+  const credits = inTrx._sum.amount ?? 0 - (outTrx._sum.amount ?? 0);
+
+  const diff =
+    new Date(body.endTime).getTime() - new Date(body.startTime).getTime();
+  const diffHours = Math.floor(diff / (1000 * 60 * 60));
+
+  if (diffHours > credits) {
+    return success(res, "Insufficient credits to rent room", {
+      status: "INSUFFICIENT_CREDITS",
+      payment: diffHours - credits,
+    });
+  }
+
+  const rent = await db.transaction.create({
+    data: {
+      user: {
+        connect: {
+          id: req.user.data.id,
+        },
+      },
+      amount: diffHours,
+      type: "OUT",
+      transactionID: crypto.randomUUID(),
+      Renting: {
+        create: {
+          roomId: body.roomId,
+          startTime: new Date(body.startTime),
+          endTime: new Date(body.endTime),
+          status: "ACTIVE",
+          userId: req.user.data.id,
+        },
+      },
+      validatedAt: new Date(),
+    },
+  });
+
+  // send current locker state to hardware
+  const locker = await db.locker.findUnique({
+    where: {
+      machineId: room.locker.machineId,
+    },
+    include: {
+      Rooms: {
+        include: {
+          Renting: {
+            where: {
+              status: "ACTIVE",
+            },
+            include: {
+              user: {
+                select: {
+                  ktmUid: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // send current state to locker of rented rooms
+  const state =
+    locker?.Rooms.map((room) => {
+      return {
+        doorId: room.doorId,
+        ktmUid: room.Renting[0].user.ktmUid,
+      };
+    }) ?? [];
+
+  await mq.publishAsync(
+    ENV.APP_MQTT_TOPIC_COMMAND,
+    `${room.locker.machineId}#STATE#${JSON.stringify(state)}`
+  );
 
   return success(res, "Room rented successfully", rent);
 };

@@ -23,6 +23,7 @@ import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 
 // [Jobs]
 import resetCreditJob from "@/jobs/resetCredit";
+import checkOverdueJob from "@/jobs/checkOverdue";
 
 // [Route imports]
 import indexRoute from "@/routes/index";
@@ -96,11 +97,13 @@ app.listen(ENV.APP_PORT, () => {
 
   // Start the cron job
   const cron = resetCreditJob();
+  const overdue = checkOverdueJob();
   console.log(
     `[🦊]: Cron job ${
       cron.name
     } started : ${cron.nextRun()} - ${cron.isRunning()}`
   );
+  console.log(`[🦊]: Cron job ${overdue.name} started : ${overdue.nextRun()}`);
 
   // [MQTT Handler]
   mq.on("message", async (topic, message) => {
@@ -138,11 +141,6 @@ app.listen(ENV.APP_PORT, () => {
                 },
               },
             },
-            user: {
-              select: {
-                credits: true,
-              },
-            },
           },
         });
 
@@ -154,47 +152,7 @@ app.listen(ENV.APP_PORT, () => {
             return;
           }
 
-          // check if endTime is passed and reduce credits
-          const endTime = new Date(renting.endTime);
-          const currentTime = new Date();
-
-          if (endTime < currentTime) {
-            const diff = endTime.getTime() - currentTime.getTime();
-            const diffHours = Math.floor(diff / (1000 * 60 * 60));
-
-            if (diffHours > 0) {
-              await db.renting.update({
-                where: {
-                  id: renting.id,
-                },
-                data: {
-                  status: "OVERDUE",
-                  user: {
-                    update: {
-                      credits: {
-                        decrement: diffHours,
-                      },
-                    },
-                  },
-                },
-              });
-            }
-          }
-
-          // re check the renting status
-          const finalRent = await db.renting.findUnique({
-            where: {
-              id: renting.id,
-            },
-            include: {
-              room: true,
-              user: true,
-            },
-          });
-
-          console.log(`[🐶]: Renting status - ${finalRent?.status}`);
-
-          if (finalRent?.status === "OVERDUE") {
+          if (renting?.status === "OVERDUE") {
             await mq.publishAsync(
               ENV.APP_MQTT_TOPIC_COMMAND,
               `${renting.room.locker.machineId}#LCD#Room overdue, please pay fine first on the app`
@@ -235,6 +193,64 @@ app.listen(ENV.APP_PORT, () => {
 
         console.log(`[🐶]: NFC Card added to queue - ${newNfc.id}`);
         return;
+      }
+
+      // check for heartbeat
+      if (parse.command === "HEARTBEAT") {
+        console.log(`[🐶]: Heartbeat received - ${parse.machineId}`);
+
+        await db.locker.update({
+          where: {
+            machineId: parse.machineId,
+          },
+          data: {
+            lastSeenAt: new Date(),
+          },
+        });
+
+        return;
+      }
+
+      if (parse.command === "STARTUP") {
+        // send current state to locker
+        const locker = await db.locker.findUnique({
+          where: {
+            machineId: parse.machineId,
+          },
+          include: {
+            Rooms: {
+              include: {
+                Renting: {
+                  where: {
+                    status: "ACTIVE",
+                  },
+                  include: {
+                    user: {
+                      select: {
+                        ktmUid: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // send current state to locker of rented rooms
+        const state =
+          locker?.Rooms.map((room) => {
+            return {
+              doorId: room.doorId,
+              ktmUid: room.Renting[0].user.ktmUid,
+            };
+          }) ?? [];
+
+        console.log(`[🐶]: Startup received - ${parse.machineId}`);
+        await mq.publishAsync(
+          ENV.APP_MQTT_TOPIC_COMMAND,
+          `${parse.machineId}#STATE#${JSON.stringify(state)}`
+        );
       }
 
       // other command only for acknowledgements
