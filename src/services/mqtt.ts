@@ -38,7 +38,9 @@ declare global {
   var mqttGlobal: undefined | ReturnType<typeof mqttSingleton>;
 }
 
-const mq = globalThis.mqttGlobal ?? mqttSingleton();
+const mq =
+  (globalThis.mqttGlobal as mqtt.MqttClient) ??
+  (mqttSingleton() as mqtt.MqttClient);
 
 export default mq;
 
