@@ -70,7 +70,6 @@ export const verifyJwt = async (
         firstName: true,
         lastName: true,
         phoneNumber: true,
-        credits: true,
       },
     });
 
