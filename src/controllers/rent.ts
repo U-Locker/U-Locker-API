@@ -19,7 +19,7 @@ export const rentHistory = async (req: Request, res: Response) => {
 
 // [GET]: /rent/active
 export const activeRent = async (req: Request, res: Response) => {
-  const activeRent = await db.renting.findFirst({
+  const activeRent = await db.renting.findMany({
     where: {
       userId: req.user.data.id,
       status: {
