@@ -26,6 +26,13 @@ export const activeRent = async (req: Request, res: Response) => {
         in: ["ACTIVE", "OVERDUE"],
       },
     },
+    include: {
+      room: {
+        select: {
+          lockerId: true,
+        },
+      },
+    },
   });
 
   return success(res, "Active rent", activeRent);
