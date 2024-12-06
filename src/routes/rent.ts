@@ -12,10 +12,10 @@ import {
 const router = Router({ mergeParams: true });
 
 router.get("/", verifyJwt, verifyRole("user"), rentHistory);
-router.get("/rent/active", verifyJwt, verifyRole("user"), activeRent);
-router.post("/rent", verifyJwt, verifyRole("user"), rentRoom);
-router.get("/rent/:rentId", verifyJwt, verifyRole("user"), getRentById);
-router.put("/rent/:roomId", verifyJwt, verifyRole("user"), openRoom);
-router.delete("/rent/:rentId", verifyJwt, verifyRole("user"), stopRent);
+router.get("/active", verifyJwt, verifyRole("user"), activeRent);
+router.post("/room", verifyJwt, verifyRole("user"), rentRoom);
+router.get("/:rentId", verifyJwt, verifyRole("user"), getRentById);
+router.put("/room/:roomId", verifyJwt, verifyRole("user"), openRoom);
+router.delete("/:rentId", verifyJwt, verifyRole("user"), stopRent);
 
 export default router;
