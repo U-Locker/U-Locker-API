@@ -114,15 +114,22 @@ export const getLockerById = async (req: Request, res: Response) => {
           include: {
             Rooms: {
               include: {
-                _count: {
+                // _count: {
+                //   select: {
+                //     Renting: {
+                //       where: {
+                //         status: {
+                //           in: ["ACTIVE", "OVERDUE"],
+                //         },
+                //       },
+                //     },
+                //   },
+                // },
+                Renting: {
                   select: {
-                    Renting: {
-                      where: {
-                        status: {
-                          in: ["ACTIVE", "OVERDUE"],
-                        },
-                      },
-                    },
+                    status: true,
+                    startTime: true,
+                    endTime: true,
                   },
                 },
               },
