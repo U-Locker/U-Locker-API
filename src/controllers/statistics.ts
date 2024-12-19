@@ -159,3 +159,55 @@ export const leaderboard = async (req: Request, res: Response) => {
 // export const history = async (req: Request, res: Response) => {
 
 // };
+
+export const userDashboardHistory = async (req: Request, res: Response) => {
+  const userId = req.user.data.id;
+
+  const rents = await db.renting.findMany({
+    where: {
+      userId,
+    },
+  });
+
+  const totalRents = rents.length;
+
+  const totalRentHours = rents
+    .map((r) => {
+      const start = new Date(r.startTime);
+      const end = new Date(r.endTime);
+
+      return Math.abs(end.getTime() - start.getTime()) / 36e5;
+    })
+    .reduce((acc, curr) => acc + curr, 0);
+
+  const creditsIn = await db.transaction.aggregate({
+    _sum: {
+      amount: true,
+    },
+    where: {
+      userId,
+      type: "IN",
+    },
+  });
+
+  const creditsOut = await db.transaction.aggregate({
+    _sum: {
+      amount: true,
+    },
+    where: {
+      userId,
+      type: "OUT",
+    },
+  });
+
+  const availableCredits =
+    (creditsIn._sum.amount ?? 0) - (creditsOut._sum.amount ?? 0);
+
+  return success(res, "User dashboard history", {
+    totalRents,
+    totalRentHours,
+    availableCredits,
+  });
+};
+
+// [1,5,67,8,9]

@@ -7,6 +7,7 @@ import {
   mostUsedLocker,
   totalEarning,
   totalRented,
+  userDashboardHistory,
 } from "@/controllers/statistics";
 
 const router = Router({ mergeParams: true });
@@ -16,5 +17,12 @@ router.get("/earning", verifyJwt, verifyRole("admin"), totalEarning);
 router.get("/most-used-locker", verifyJwt, verifyRole("admin"), mostUsedLocker);
 router.get("/leaderboard", verifyJwt, verifyRole("admin"), leaderboard);
 router.get("/total-rented", verifyJwt, verifyRole("admin"), totalRented);
+
+router.get(
+  "/user/dashboard",
+  verifyJwt,
+  verifyRole("user"),
+  userDashboardHistory
+);
 
 export default router;
