@@ -173,6 +173,21 @@ export const myTransactions = async (req: Request, res: Response) => {
     select: {
       id: true,
       // transactionID: true,
+      Renting: {
+        select: {
+          room: {
+            select: {
+              name: true,
+              locker: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        take: 1,
+      },
       type: true,
       amount: true,
       createdAt: true,
