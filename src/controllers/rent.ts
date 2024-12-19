@@ -383,14 +383,35 @@ export const rentRoom = async (req: Request, res: Response) => {
     where: {
       machineId: room.locker.machineId,
     },
-    include: {
+    // include: {
+    //   Rooms: {
+    //     include: {
+    //       Renting: {
+    //         where: {
+    //           status: "ACTIVE",
+    //         },
+    //         include: {
+    //           user: {
+    //             select: {
+    //               ktmUid: true,
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    // },
+
+    select: {
+      machineId: true,
       Rooms: {
-        include: {
+        select: {
+          doorId: true,
           Renting: {
             where: {
               status: "ACTIVE",
             },
-            include: {
+            select: {
               user: {
                 select: {
                   ktmUid: true,
