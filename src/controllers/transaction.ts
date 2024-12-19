@@ -10,7 +10,7 @@ import idSchema from "@/models/idSchema";
 import {
   midtransCallbackSchema,
   transactionUpdatableSchema,
-  type MidtransStatus,
+  // type MidtransStatus,
 } from "@/models/transaction";
 
 import ENV from "@/utils/env";
@@ -62,10 +62,10 @@ const API_URL =
     ? "https://app.sandbox.midtrans.com/snap/v1/transactions"
     : "https://app.midtrans.com/snap/v1/transactions";
 
-const API_VALIDATION_URL =
-  ENV.APP_MIDTRANS_ENV === "sandbox"
-    ? "https://api.sandbox.midtrans.com/v2"
-    : "https://api.midtrans.com/v2";
+// const API_VALIDATION_URL =
+//   ENV.APP_MIDTRANS_ENV === "sandbox"
+//     ? "https://api.sandbox.midtrans.com/v2"
+//     : "https://api.midtrans.com/v2";
 
 // POST / : Create Transaction
 export const createTransaction = async (req: Request, res: Response) => {
@@ -123,23 +123,23 @@ export const createTransaction = async (req: Request, res: Response) => {
 export const midtransCallback = async (req: Request, res: Response) => {
   const body = await midtransCallbackSchema.parseAsync(req.body);
 
-  // validate midtrans transaction
-  const resp = await fetch(
-    `${API_VALIDATION_URL}/${body.transaction_id}/status`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${btoa(ENV.APP_MIDTRANS_SERVER_KEY + ":")}`,
-        Accept: "application/json",
-      },
-    }
-  );
+  // // validate midtrans transaction
+  // const resp = await fetch(
+  //   `${API_VALIDATION_URL}/${body.transaction_id}/status`,
+  //   {
+  //     method: "GET",
+  //     headers: {
+  //       Authorization: `Basic ${btoa(ENV.APP_MIDTRANS_SERVER_KEY + ":")}`,
+  //       Accept: "application/json",
+  //     },
+  //   }
+  // );
 
-  const mtData = (await resp.json()) as MidtransStatus;
+  // const mtData = (await resp.json()) as MidtransStatus;
 
-  if (mtData.status_code === "404") {
-    return notFound(res, "Transaction not found");
-  }
+  // if (mtData.status_code === "404") {
+  //   return notFound(res, "Transaction not found");
+  // }
 
   const transaction = await db.transaction.findUnique({
     where: {
@@ -151,7 +151,7 @@ export const midtransCallback = async (req: Request, res: Response) => {
     return notFound(res, "Transaction not found");
   }
 
-  if (mtData.transaction_status === "settlement") {
+  if (body.transaction_status === "settlement") {
     await db.transaction.update({
       where: {
         id: transaction.id,
