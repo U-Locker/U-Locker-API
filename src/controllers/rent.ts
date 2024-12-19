@@ -142,11 +142,11 @@ export const openRoom = async (req: Request, res: Response) => {
 
 // [DELETE]: /rent/:rentId - stop rent
 export const stopRent = async (req: Request, res: Response) => {
-  const rentId = await idSchema.parseAsync(req.params.rentId);
+  const roomId = await idSchema.parseAsync(req.params.rentId);
 
-  const rent = await db.renting.findUnique({
+  const rent = await db.renting.findFirst({
     where: {
-      id: rentId,
+      roomId: roomId,
     },
     include: {
       user: true,
@@ -220,7 +220,7 @@ export const stopRent = async (req: Request, res: Response) => {
         transactionID: crypto.randomUUID(),
         Renting: {
           connect: {
-            id: rentId,
+            id: rent.id,
           },
         },
         validatedAt: new Date(),
@@ -236,7 +236,7 @@ export const stopRent = async (req: Request, res: Response) => {
 
   await db.renting.update({
     where: {
-      id: rentId,
+      id: rent.id,
     },
     data: {
       status: "DONE",
