@@ -187,6 +187,9 @@ export const userDashboardHistory = async (req: Request, res: Response) => {
     where: {
       userId,
       type: "IN",
+      validatedAt: {
+        not: null,
+      },
     },
   });
 
