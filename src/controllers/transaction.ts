@@ -110,7 +110,7 @@ export const createTransaction = async (req: Request, res: Response) => {
       userId: req.user.data.id,
       transactionID,
       type: "IN",
-      amount: body.amount / 1000,
+      amount: body.amount,
     },
   });
 
