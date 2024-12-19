@@ -403,6 +403,8 @@ export const rentRoom = async (req: Request, res: Response) => {
     },
   });
 
+  console.log(locker);
+
   // send current state to locker of rented rooms
   const state =
     locker?.Rooms.map((room) => {
