@@ -342,7 +342,7 @@ export const rentRoom = async (req: Request, res: Response) => {
     },
   });
 
-  const credits = inTrx._sum.amount ?? 0 - (outTrx._sum.amount ?? 0);
+  const credits = (inTrx._sum.amount ?? 0) - (outTrx._sum.amount ?? 0);
 
   const diff =
     new Date(body.endTime).getTime() - new Date(body.startTime).getTime();
