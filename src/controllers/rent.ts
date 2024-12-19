@@ -269,7 +269,7 @@ export const stopRent = async (req: Request, res: Response) => {
 
   // send current state to locker of rented rooms
   const state =
-    locker?.Rooms.map((room) => {
+    locker?.Rooms.filter((r) => r.Renting.length > 0).map((room) => {
       return {
         doorId: room.doorId,
         ktmUid: room.Renting[0].user.ktmUid,
@@ -383,24 +383,6 @@ export const rentRoom = async (req: Request, res: Response) => {
     where: {
       machineId: room.locker.machineId,
     },
-    // include: {
-    //   Rooms: {
-    //     include: {
-    //       Renting: {
-    //         where: {
-    //           status: "ACTIVE",
-    //         },
-    //         include: {
-    //           user: {
-    //             select: {
-    //               ktmUid: true,
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //   },
-    // },
 
     select: {
       machineId: true,
@@ -424,11 +406,9 @@ export const rentRoom = async (req: Request, res: Response) => {
     },
   });
 
-  console.log(locker);
-
   // send current state to locker of rented rooms
   const state =
-    locker?.Rooms.map((room) => {
+    locker?.Rooms.filter((r) => r.Renting.length > 0).map((room) => {
       return {
         doorId: room.doorId,
         ktmUid: room.Renting[0].user.ktmUid,

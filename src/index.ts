@@ -243,7 +243,7 @@ app.listen(ENV.APP_PORT, () => {
 
         // send current state to locker of rented rooms
         const state =
-          locker?.Rooms.map((room) => {
+          locker?.Rooms.filter((r) => r.Renting.length > 0).map((room) => {
             return {
               doorId: room.doorId,
               ktmUid: room.Renting[0].user.ktmUid,
