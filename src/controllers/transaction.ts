@@ -143,7 +143,7 @@ export const midtransCallback = async (req: Request, res: Response) => {
 
   const transaction = await db.transaction.findUnique({
     where: {
-      transactionID: body.transaction_id,
+      transactionID: body.order_id,
     },
   });
 
