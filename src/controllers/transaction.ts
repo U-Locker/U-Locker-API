@@ -164,3 +164,41 @@ export const midtransCallback = async (req: Request, res: Response) => {
 
   return success(res, "Transaction updated");
 };
+
+export const myTransactions = async (req: Request, res: Response) => {
+  const rawTransactions = await db.transaction.findMany({
+    where: {
+      userId: req.user.data.id,
+    },
+    select: {
+      id: true,
+      // transactionID: true,
+      type: true,
+      amount: true,
+      createdAt: true,
+      validatedAt: true,
+    },
+  });
+
+  const transactions = rawTransactions.filter(
+    (t) => t.type === "OUT" || (t.type === "IN" && t.validatedAt)
+  );
+
+  return success(res, "My Transactions", transactions);
+};
+
+export const getTransactionDetail = async (req: Request, res: Response) => {
+  const transactionId = await idSchema.parseAsync(req.params.transactionId);
+
+  const transaction = await db.transaction.findUnique({
+    where: {
+      id: transactionId,
+    },
+  });
+
+  if (!transaction) {
+    return notFound(res, "Transaction not found");
+  }
+
+  return success(res, "Transaction Detail", transaction);
+};

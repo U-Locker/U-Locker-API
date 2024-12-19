@@ -23,12 +23,7 @@ router.put(
   verifyRole("admin"),
   updateRoom
 );
-router.put(
-  "/:lockerId/rooms/:roomId/override",
-  verifyJwt,
-  verifyRole("admin"),
-  overrideOpenRoom
-);
+router.put("/:lockerId/rooms/:roomId/override", verifyJwt, overrideOpenRoom);
 // DELETE: /locker/:lockerId/rooms/:roomId
 router.delete(
   "/:lockerId/rooms/:roomId",

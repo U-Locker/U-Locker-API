@@ -123,8 +123,25 @@ export const overrideOpenRoom = async (req: Request, res: Response) => {
   const lockerId = await idSchema.parseAsync(req.params.lockerId);
   const roomId = await idSchema.parseAsync(req.params.roomId);
 
-  if (!lockerId || !roomId) {
-    return validationError(res, "Locker ID and Room ID are required");
+  // if (!lockerId || !roomId) {
+  //   return validationError(res, "Locker ID and Room ID are required");
+  // }
+
+  if (req.user.role === "user") {
+    // check if user really rented the room
+    const rent = await db.renting.findFirst({
+      where: {
+        userId: req.user.data.id,
+        roomId: roomId,
+        status: {
+          in: ["ACTIVE", "OVERDUE"],
+        },
+      },
+    });
+
+    if (!rent) {
+      return validationError(res, "You don't have access to open this room");
+    }
   }
 
   const room = await db.rooms.findUnique({

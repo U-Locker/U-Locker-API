@@ -31,6 +31,8 @@ import authRouter from "@/routes/auth";
 import nfcRouter from "@/routes/nfc";
 import lockerRouter from "@/routes/locker";
 import rentRouter from "@/routes/rent";
+import transactionRouter from "@/routes/transactions";
+import statisticsRouter from "@/routes/statistics";
 
 // [MQTT]
 import mq from "@/services/mqtt";
@@ -69,6 +71,8 @@ app.use("/auth", authRouter);
 app.use("/nfc", nfcRouter);
 app.use("/locker", lockerRouter);
 app.use("/rent", rentRouter);
+app.use("/transaction", transactionRouter);
+app.use("/statistics", statisticsRouter);
 
 // [Global 404]
 app.all("/*path", (_req: Request, res: Response) => {
