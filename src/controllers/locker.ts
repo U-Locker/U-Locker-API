@@ -113,6 +113,16 @@ export const getLockerById = async (req: Request, res: Response) => {
           },
           include: {
             Rooms: {
+              // add where clause to filter out done renting
+              where: {
+                Renting: {
+                  none: {
+                    status: "DONE",
+                  },
+                },
+              },
+
+              // ------
               include: {
                 // _count: {
                 //   select: {
