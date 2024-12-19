@@ -307,9 +307,9 @@ export const rentRoom = async (req: Request, res: Response) => {
   const startTime = new Date(body.startTime);
   const endTime = new Date(body.endTime);
 
-  if (startTime < new Date()) {
-    return badRequest(res, "Start time cannot be in the past");
-  }
+  // if (startTime < new Date()) {
+  //   return badRequest(res, "Start time cannot be in the past");
+  // }
 
   if (endTime < startTime) {
     return badRequest(res, "End time cannot be before start time");
@@ -417,7 +417,10 @@ export const rentRoom = async (req: Request, res: Response) => {
     `${room.locker.machineId}#STATE#${JSON.stringify(state)}`
   );
 
-  return success(res, "Room rented successfully", rent);
+  return success(res, "Room rented successfully", {
+    status: "ACTIVE",
+    rent,
+  });
 };
 
 // // [GET]: /rent/:lockerId/
