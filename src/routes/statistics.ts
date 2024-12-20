@@ -9,6 +9,7 @@ import {
   totalRented,
   userDashboardHistory,
   rentTimeline,
+  inCashFlowTimeline,
 } from "@/controllers/statistics";
 
 const router = Router({ mergeParams: true });
@@ -19,6 +20,7 @@ router.get("/most-used-locker", verifyJwt, verifyRole("admin"), mostUsedLocker);
 router.get("/leaderboard", verifyJwt, verifyRole("admin"), leaderboard);
 router.get("/total-rented", verifyJwt, verifyRole("admin"), totalRented);
 router.get("/timeline", verifyJwt, verifyRole("admin"), rentTimeline);
+router.get("/timeline/trx", verifyJwt, verifyRole("admin"), inCashFlowTimeline);
 
 router.get(
   "/user/dashboard",
