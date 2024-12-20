@@ -188,6 +188,15 @@ export const register = async (req: Request, res: Response) => {
     });
 
     if (nfc) {
+      await db.user.update({
+        where: {
+          email: body.email,
+        },
+        data: {
+          ktmUid: body.ktmUid,
+        },
+      });
+
       await db.nFCQueue.delete({
         where: {
           id: nfc.id,
