@@ -48,6 +48,9 @@ export const totalEarning = async (req: Request, res: Response) => {
     },
     where: {
       type: "IN",
+      validatedAt: {
+        not: null,
+      },
     },
   });
 
@@ -214,3 +217,69 @@ export const userDashboardHistory = async (req: Request, res: Response) => {
 };
 
 // [1,5,67,8,9]
+
+export const rentTimeline = async (req: Request, res: Response) => {
+  const { period } = req.query;
+
+  const allowedPeriod = ["daily", "weekly", "monthly"];
+  if (!allowedPeriod.includes(period as string)) {
+    return badRequest(res, "Invalid period");
+  }
+
+  if (period === "daily") {
+    const rentTimeline = await db.renting.groupBy({
+      by: ["createdAt"],
+      _count: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      where: {
+        createdAt: {
+          gte: new Date(new Date().setHours(0, 0, 0)),
+          lte: new Date(new Date().setHours(23, 59, 59)),
+        },
+      },
+    });
+
+    return success(res, "Rent Timeline daily", rentTimeline);
+  }
+
+  if (period === "weekly") {
+    const rentTimeline = await db.renting.groupBy({
+      by: ["createdAt"],
+      _count: {
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      where: {
+        createdAt: {
+          gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+        },
+      },
+    });
+
+    return success(res, "Rent Timeline weekly", rentTimeline);
+  }
+
+  // by default, monthly
+  const rentTimeline = await db.renting.groupBy({
+    by: ["createdAt"],
+    _count: {
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    where: {
+      createdAt: {
+        gte: new Date(new Date().setDate(new Date().getDate() - 30)),
+      },
+    },
+  });
+
+  return success(res, "Rent Timeline monthly", rentTimeline);
+};
